@@ -76,7 +76,6 @@ InputBufferPlugin::InputBufferPlugin( OfxImageEffectHandle handle )
 	_paramPixelComponents = fetchChoiceParam( kParamPixelComponents );
 	_paramBitDepth = fetchChoiceParam( kParamBitDepth );
 	_paramField = fetchChoiceParam( kParamField );
-	_paramOrientation = fetchChoiceParam( kParamOrientation );
 	
 	_paramTimeDomain = fetchDouble2DParam( kParamTimeDomain );
 	
@@ -151,7 +150,6 @@ InputBufferProcessParams InputBufferPlugin::getProcessParams( const OfxTime time
 		params._field = OFX::eFieldUpper;
 		break;
 	}
-	params._orientation = static_cast<EParamOrientation>(_paramOrientation->getValue());
 	
 	return params;
 }
@@ -305,7 +303,7 @@ void InputBufferPlugin::render( const OFX::RenderArguments &args )
 				break;
 			}
 		}
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, (void*)inputImageBufferPtr );
+//		TUTTLE_TCOUT_VAR( (void*)inputImageBufferPtr );
 
 		const std::size_t nbComponents = numberOfComponents( params._pixelComponents );
 		const std::size_t bitDepthMemSize = bitDepthMemorySize( params._bitDepth );
@@ -314,32 +312,9 @@ void InputBufferPlugin::render( const OFX::RenderArguments &args )
 			rowBytesDistanceSize = widthBytesSize;
 
 		// Copy the image
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, nbComponents );
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, bitDepthMemSize );
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, widthBytesSize );
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, (void*)inputImageBufferPtr );
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, dstPixelRodSize.x );
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, dstPixelRodSize.y );
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, rowBytesDistanceSize );
-//		TUTTLE_TLOG_VAR( TUTTLE_INFO, widthBytesSize );
-		switch( params._orientation )
+		for( int y = 0; y < dstPixelRodSize.y; ++y )
 		{
-			case eParamOrientationFromBottomToTop:
-			{
-				for( int y = 0; y < dstPixelRodSize.y; ++y )
-				{
-					memcpy( dst->getPixelAddress( 0, y ), inputImageBufferPtr + y * rowBytesDistanceSize, widthBytesSize );
-				}
-				break;
-			}
-			case eParamOrientationFromTopToBottom:
-			{
-				for( int y = 0; y < dstPixelRodSize.y; ++y )
-				{
-					memcpy( dst->getPixelAddress( 0, y ), inputImageBufferPtr + (dstPixelRodSize.y-y) * rowBytesDistanceSize, widthBytesSize );
-				}
-				break;
-			}
+			memcpy( dst->getPixelAddress( 0, y ), inputImageBufferPtr + y * rowBytesDistanceSize, widthBytesSize );
 		}
 		
 		switch( params._mode )
