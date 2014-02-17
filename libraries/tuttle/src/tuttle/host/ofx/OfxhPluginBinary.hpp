@@ -172,6 +172,13 @@ public:
 		return _plugins[idx];
 	}
 
+#ifndef SWIG
+	OfxhBinary& getBinary()
+	{
+		return _binary;
+	}
+#endif
+
 private:
 	friend class boost::serialization::access;
 	template<class Archive>

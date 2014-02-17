@@ -701,8 +701,8 @@ OfxRangeD ImageEffectNode::getDefaultTimeDomain() const
 			else
 			{
 				// maybe better to use intersection instead of union
-				range.min = std::min( range.min, clipRange.min );
-				range.max = std::max( range.max, clipRange.max );
+				range.min = std::max( range.min, clipRange.min );
+				range.max = std::min( range.max, clipRange.max );
 			}
 		}
 	}

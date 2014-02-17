@@ -258,12 +258,16 @@ void OfxhPluginCache::scanDirectory( std::set<std::string>& foundBinFiles, const
 					_binaries.push_back( pb );
 					_knownBinFiles.insert( binpath );
 
+					if (barename.compare("Sapphire.ofx") == 0) pb->getBinary().ref();
+
 					for( int j = 0; j < pb->getNPlugins(); ++j )
 					{
 						OfxhPlugin& plug                   = pb->getPlugin( j );
 						APICache::OfxhPluginAPICacheI& api = plug.getApiHandler();
 						api.loadFromPlugin( plug );
 					}
+
+					if (barename.compare("Sapphire.ofx") == 0) pb->getBinary().unref();
 				}
 				catch(... )
 				{
