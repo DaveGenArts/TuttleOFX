@@ -31,6 +31,7 @@ VideoFFmpegReader::VideoFFmpegReader()
 	, _lastDecodedPos( -1 )
 	, _lastDecodedFrame( -1 )
 	, _isOpen( false )
+        , _decodedOffset( 0 )
 {
 //	for( int i = 0; i < AVMEDIA_TYPE_NB; ++i )
 //	{
@@ -145,7 +146,7 @@ void VideoFFmpegReader::close()
 
 bool VideoFFmpegReader::read( const int frame )
 {
-	const int frameNumber = frame % _nbFrames;
+        const int frameNumber = frame % (_nbFrames + 1);
 
 	if( frameNumber != frame )
 	{
@@ -298,8 +299,15 @@ bool VideoFFmpegReader::setupStreamInfo()
 			std::cerr << "Warning: calculated number of frames ("   <<
 			_nbFrames << ") does not match container information (" <<
 			stream->nb_frames << ")" << std::endl;
+			if ( (int64_t)_nbFrames > stream->nb_frames )
+			{
+			  _nbFrames =  boost::numeric_cast<boost::uint64_t>(stream->nb_frames);
+			}
 		}
 	}
+
+	// Correct the nuber of frames as ffmpeg starts from frame 1 not 0
+	_nbFrames -= 1;
 
 	return true;
 }
@@ -342,6 +350,7 @@ boost::int64_t VideoFFmpegReader::getTimeStamp( int pos ) const
 
 bool VideoFFmpegReader::seek( const std::size_t pos )
 {
+	
 	boost::int64_t offset = getTimeStamp( pos );
 
 	if( _offsetTime )
@@ -371,6 +380,7 @@ bool VideoFFmpegReader::decodeImage( const int frame )
 
 	if( _pkt.dts != AV_NOPTS_VALUE )
 	{
+	  
 		AVStream* stream = getVideoStream();
 		if( stream )
 		{
@@ -382,32 +392,44 @@ bool VideoFFmpegReader::decodeImage( const int frame )
 	if( curPos == _lastSearchPos )
 		curPos = _lastSearchPos + 1;
 	_lastSearchPos = curPos;
-
 	if( _context->start_time != AV_NOPTS_VALUE )
 		curPos -= int(_context->start_time * fps() / AV_TIME_BASE);
 
-	int hasPicture   = 0;
+	int hasPicture = 0;
 	int curSearch    = 0;
+	int result = 0;
 	AVStream* stream = getVideoStream();
 	if( !stream )
 		return false;
 
 	AVCodecContext* codecContext = stream->codec;
-	if( curPos >= frame )
+
+	if ( _pkt.dts == AV_NOPTS_VALUE && _decodedOffset > 0 )
+        {
+	        _pkt.data=NULL;
+	        _pkt.size=0;
+	        result = avcodec_decode_video2( codecContext, _avFrame, &hasPicture, &_pkt );
+	        _decodedOffset -= 1;
+	}
+	else if( curPos >= frame )
 	{
 		#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( 52, 21, 0 )
-		avcodec_decode_video2( codecContext, _avFrame, &hasPicture, &_pkt );
+		result = avcodec_decode_video2( codecContext, _avFrame, &hasPicture, &_pkt );
 		#else
-		avcodec_decode_video( codecContext, _avFrame, &hasPicture, _pkt.data, _pkt.size );
+		result = avcodec_decode_video( codecContext, _avFrame, &hasPicture, _pkt.data, _pkt.size );
 		#endif
+		if ( result > 0 && !hasPicture )
+		        _decodedOffset += 1;
 	}
 	else if( _offsetTime )
 	{
 		#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( 52, 21, 0 )
-		avcodec_decode_video2( codecContext, _avFrame, &curSearch, &_pkt );
+		result = avcodec_decode_video2( codecContext, _avFrame, &curSearch, &_pkt );
 		#else
-		avcodec_decode_video( codecContext, _avFrame, &curSearch, _pkt.data, _pkt.size );
+		result = avcodec_decode_video( codecContext, _avFrame, &curSearch, _pkt.data, _pkt.size );
 		#endif
+                if ( result > 0 && !curSearch )
+		        _decodedOffset += 1;
 	}
 
 	if( !hasPicture )

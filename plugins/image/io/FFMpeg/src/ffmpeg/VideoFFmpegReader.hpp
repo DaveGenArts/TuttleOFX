@@ -171,6 +171,7 @@ public: // private:
 	int _lastSearchPos;
 	int _lastDecodedPos;
 	int _lastDecodedFrame;
+        int _decodedOffset;
 	bool _isOpen;
 	EIntrelacment _interlacment;
 };

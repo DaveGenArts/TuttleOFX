@@ -70,7 +70,7 @@ public:
 
 
 public:
-	void preload( const bool useCache = true );
+	void preload( const bool useCache = false);
 
 	const ofx::OfxhPlugin& operator[]( const std::string& name ) const
 	{
