@@ -152,11 +152,11 @@ bool VideoFFmpegReader::read( const int frame )
 	{
 		std::cerr << "Read outside the video range (time:" << frame << ", video size:" << _nbFrames << std::endl;
 	}
-	if( _lastDecodedFrame + 1 != frameNumber )
+	/*if( _lastDecodedFrame + 1 != frameNumber )
 	{
-		seek( 0 );
-		seek( frameNumber );
-	}
+	  seek( 0 );
+	  seek( frameNumber );
+	  }*/
 
 	av_init_packet( &_pkt );
 
